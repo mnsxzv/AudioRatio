@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AudioRatio — Алтын қатынас арқылы ән құрылымын талдау</title>
+<meta name="description" content="AudioRatio — әннің шарықтау шегін алтын қатынас (0.618) бойынша талдап, жанрға сай ұсыныстар беретін құрал." />
+<meta property="og:title" content="AudioRatio — ән құрылымын талдау" />
+<meta property="og:description" content="Әннің шарықтау шегін алтын қатынасқа шақтап, сазгерге ақылды ұсыныстар алыңыз." />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'] },
+        colors: { ink: '#08090d', spot: '#1ed760', emer: '#10b981' },
+      },
+    },
+  };
+</script>
+<style>
+  :root { --spot:#1ed760; --emer:#10b981; }
+  html { scroll-behavior: smooth; }
+  body {
+    background-color:#08090d;
+    color:#e8ecf1;
+    font-family:'Plus Jakarta Sans',system-ui,sans-serif;
+    overflow-x:hidden;
+  }
+  .grid-bg{
+    position:fixed; inset:0; pointer-events:none; z-index:0;
+    background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),
+                     linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);
+    background-size:44px 44px;
+    mask-image:radial-gradient(circle at 50% 20%,black,transparent 70%);
+    -webkit-mask-image:radial-gradient(circle at 50% 20%,black,transparent 70%);
+  }
+  .blob{position:fixed;border-radius:9999px;filter:blur(90px);opacity:.35;z-index:0;pointer-events:none;animation:float 14s ease-in-out infinite}
+  .blob-a{width:420px;height:420px;background:var(--spot);top:-120px;left:-90px}
+  .blob-b{width:380px;height:380px;background:var(--emer);bottom:-140px;right:-100px;animation-delay:-6s}
+  @keyframes float{0%,100%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(0,30px,0) scale(1.08)}}
+  .glass{
+    background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.025));
+    border:1px solid rgba(255,255,255,.09);
+    backdrop-filter:blur(18px) saturate(140%);
+    border-radius:22px;
+    transition:border-color .3s ease, transform .3s ease, box-shadow .3s ease;
+  }
+  .glass:hover{border-color:rgba(30,215,96,.35);box-shadow:0 18px 40px -22px rgba(30,215,96,.45)}
+  input,select{transition:box-shadow .25s ease,border-color .25s ease,background-color .25s ease}
+  input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{
+    outline:2px solid var(--spot);outline-offset:3px
+  }
+  .btn-main{background:linear-gradient(120deg,var(--spot),var(--emer));color:#04140a;transition:transform .2s ease,box-shadow .25s ease,filter .2s ease}
+  .btn-main:hover{transform:translateY(-2px);box-shadow:0 16px 34px -14px rgba(30,215,96,.7);filter:brightness(1.05)}
+  .btn-main:active{transform:translateY(0)}
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .55s ease,transform .55s ease}
+  .reveal.in{opacity:1;transform:none}
+  .glow-high{box-shadow:0 0 0 1px rgba(30,215,96,.5),0 0 42px -8px rgba(30,215,96,.55)}
+  .glow-mid{box-shadow:0 0 0 1px rgba(245,158,11,.5),0 0 42px -8px rgba(245,158,11,.5)}
+  .glow-low{box-shadow:0 0 0 1px rgba(244,63,94,.5),0 0 42px -8px rgba(244,63,94,.5)}
+  .marker{transition:left .7s cubic-bezier(.22,1,.36,1)}
+  .seg{transition:width .7s cubic-bezier(.22,1,.36,1),filter .25s ease}
+  .seg:hover{filter:brightness(1.25)}
+  .err{color:#fb7185;font-size:.8rem;min-height:1.1rem}
+</style>
+</head>
+<body class="antialiased">
+<div class="grid-bg"></div><div class="blob blob-a"></div><div class="blob blob-b"></div>
+
+<main class="relative z-10 mx-auto w-full max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
+
+  <header class="text-center">
+    <div class="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[#1ed760] shadow-[0_14px_36px_-10px_rgba(30,215,96,.55)]" aria-label="AudioRatio логотипі">
+      <svg viewBox="0 0 100 100" class="h-9 w-9" aria-hidden="true">
+        <circle cx="50" cy="50" r="50" fill="#1ed760"/>
+        <g fill="#08090d">
+          <rect x="26" y="38" width="10" height="24" rx="5"/>
+          <rect x="44" y="26" width="10" height="48" rx="5"/>
+          <rect x="62" y="34" width="10" height="32" rx="5"/>
+        </g>
+      </svg>
+    </div>
+    <h1 class="text-4xl font-extrabold tracking-tight sm:text-5xl">
+      Audio<span class="bg-gradient-to-r from-[#1ed760] to-[#10b981] bg-clip-text text-transparent">Ratio</span>
+    </h1>
+    <p class="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-slate-400 sm:text-base">
+      Әніңіздің шарықтау шегін алтын қатынас нүктесімен салыстырып, құрылымдық талдау жасаңыз және аудионы кесіп алыңыз.
+    </p>
+  </header>
+
+  <!-- FORM -->
+  <section class="glass mt-10 p-5 sm:p-7" aria-labelledby="form-title">
+    <h2 id="form-title" class="text-lg font-bold">Деректерді енгізу және Аудио жүктеу</h2>
+    
+    <form id="form" novalidate class="mt-5 grid gap-5 sm:grid-cols-2">
+
+      <!-- Аудио файл жүктеу блогы -->
+      <div class="sm:col-span-2">
+        <label class="block text-sm font-semibold text-slate-200">Аудио файл енгізу (автоматты уақытты анықтау үшін)</label>
+        <div id="dropzone" class="mt-2 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-white/20 bg-white/5 p-6 transition hover:border-[#1ed760]/50 cursor-pointer text-center">
+          <svg class="h-10 w-10 text-emerald-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12 0c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
+          </svg>
+          <p class="text-sm font-medium text-slate-200">Аудио файлды осы жерге тастаңыз немесе <span class="text-[#1ed760] underline">басып таңдаңыз</span></p>
+          <p class="mt-1 text-xs text-slate-400">MP3, WAV, AAC, FLAC, M4A</p>
+          <input type="file" id="audio-input" accept="audio/*" class="hidden" />
+        </div>
+        
+        <div id="file-info" class="mt-3 hidden items-center justify-between rounded-xl border border-emerald-500/30 bg-emerald-950/30 p-3.5 text-xs text-emerald-300">
+          <span id="file-name" class="font-semibold truncate max-w-[250px]"></span>
+          <span id="file-duration" class="font-mono bg-emerald-900/50 px-2 py-1 rounded"></span>
+        </div>
+      </div>
+
+      <div>
+        <label for="total" class="block text-sm font-semibold text-slate-200">Әннің толық ұзақтығы (T, секунд)</label>
+        <input id="total" name="total" type="number" inputmode="numeric" min="1" step="1" placeholder="Мысалы: 210"
+          aria-describedby="total-prev total-err"
+          class="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-base font-medium text-white placeholder-slate-500 hover:border-white/20" />
+        <p id="total-prev" class="mt-1.5 text-xs font-semibold text-emerald-300">00:00</p>
+        <p id="total-err" class="err" role="alert"></p>
+      </div>
+
+      <div>
+        <label for="climax" class="block text-sm font-semibold text-slate-200">Нақты шарықтау шегі (Y, секунд)</label>
+        <input id="climax" name="climax" type="number" inputmode="numeric" min="1" step="1" placeholder="Мысалы: 128"
+          aria-describedby="climax-prev climax-err"
+          class="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-base font-medium text-white placeholder-slate-500 hover:border-white/20" />
+        <p id="climax-prev" class="mt-1.5 text-xs font-semibold text-emerald-300">00:00</p>
+        <p id="climax-err" class="err" role="alert"></p>
+      </div>
+
+      <div class="sm:col-span-2">
+        <label for="genre" class="block text-sm font-semibold text-slate-200">Жанр</label>
+        <select id="genre" aria-describedby="genre-hint"
+          class="mt-2 w-full appearance-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-base font-medium text-white hover:border-white/20">
+          <option value="kuy" data-t="1.5">Қазақ күйлері (Δ ≤ 1.5%)</option>
+          <option value="pop" data-t="2.0">K-Pop / Pop (Δ ≤ 2.0%)</option>
+          <option value="rap" data-t="4.5">Рэп / Хип-хоп / Трап (Δ ≤ 4.5%)</option>
+          <option value="classic" data-t="3.0">Классика / Басқа (Δ ≤ 3.0%)</option>
+        </select>
+        <p id="genre-hint" class="mt-1.5 text-xs text-slate-500">Жанр таңдауы ауытқудың рұқсат етілген шегін анықтайды.</p>
+      </div>
+
+      <div class="sm:col-span-2">
+        <button type="submit" class="btn-main w-full rounded-xl px-6 py-3.5 text-base font-extrabold tracking-tight cursor-pointer">
+          Талдау жасау
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <!-- RESULTS -->
+  <section id="results" class="reveal mt-10 hidden space-y-6" aria-live="polite">
+
+    <div class="glass p-5 sm:p-7">
+      <h2 class="text-lg font-bold">Уақыт шкаласы</h2>
+      <p class="mt-1 text-xs text-slate-400">Intro/Verse 38.2% · Chorus 23.6% · Outro 38.2%</p>
+
+      <div class="mt-6">
+        <div class="relative">
+          <div class="flex h-5 w-full overflow-hidden rounded-full border border-white/10 bg-white/5">
+            <div class="seg h-full bg-emerald-900/70" style="width:38.2%" title="Intro / Verse"></div>
+            <div class="seg h-full bg-gradient-to-r from-[#1ed760] to-[#10b981]" style="width:23.6%" title="Chorus"></div>
+            <div class="seg h-full bg-emerald-950/80" style="width:38.2%" title="Outro"></div>
+          </div>
+          <div id="marker" class="marker absolute -top-2.5 h-10 w-0.5 -translate-x-1/2 rounded bg-rose-400" style="left:0%">
+            <span class="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-rose-400/15 px-2 py-0.5 text-[10px] font-bold text-rose-300">Y</span>
+          </div>
+          <div id="xline" class="marker absolute -top-1 h-7 w-0.5 -translate-x-1/2 rounded bg-white/70" style="left:61.8%">
+            <span class="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-white/10 px-2 py-0.5 text-[10px] font-bold text-slate-200">X</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="breakdown" class="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"></div>
+    </div>
+
+    <!-- АУДИОНЫ КЕСУ СЕКЦИЯСЫ (Алтын Қима Модулі) -->
+    <div id="cutter-card" class="glass p-5 sm:p-7 hidden">
+      <h2 class="text-lg font-bold flex items-center gap-2">
+        <svg class="w-5 h-5 text-[#1ed760]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 0L4 4m5.121 5.121L4 19"/>
+        </svg>
+        <span>Алтын қатынас бойынша аудионы кесу</span>
+      </h2>
+      <p class="mt-1 text-xs text-slate-400">Төмендегі батырмалар арқылы әннің алтын қима нүктелерін бөлек аудио файл ретінде кесіп алыңыз:</p>
+
+      <div class="mt-5 grid gap-3 sm:grid-cols-3">
+        <button type="button" id="cut-climax" class="rounded-xl border border-white/10 bg-white/5 p-3 text-left transition hover:border-[#1ed760] hover:bg-[#1ed760]/10">
+          <p class="text-xs font-bold text-[#1ed760]">🔥 Шарықтау аймағы</p>
+          <p class="mt-1 text-[11px] text-slate-400">X нүктесі айналасы (±15с)</p>
+        </button>
+        <button type="button" id="cut-intro" class="rounded-xl border border-white/10 bg-white/5 p-3 text-left transition hover:border-[#1ed760] hover:bg-[#1ed760]/10">
+          <p class="text-xs font-bold text-emerald-300">🎵 Алтын нүктеге дейін</p>
+          <p class="mt-1 text-[11px] text-slate-400">0 секундтан X-ке дейін</p>
+        </button>
+        <button type="button" id="cut-chorus" class="rounded-xl border border-white/10 bg-white/5 p-3 text-left transition hover:border-[#1ed760] hover:bg-[#1ed760]/10">
+          <p class="text-xs font-bold text-teal-300">✨ Кульминация (Chorus)</p>
+          <p class="mt-1 text-[11px] text-slate-400">38.2% - 61.8% аралығы</p>
+        </button>
+      </div>
+
+      <div id="audio-export-box" class="mt-5 hidden rounded-xl border border-emerald-500/30 bg-emerald-950/20 p-4 space-y-3">
+        <p id="export-status" class="text-xs font-semibold text-emerald-300"></p>
+        <audio id="export-player" controls class="w-full h-10 rounded-lg"></audio>
+        <a id="export-download" download="golden_ratio_cut.wav" class="btn-main flex items-center justify-center gap-2 rounded-xl py-3 text-xs font-extrabold tracking-tight text-center cursor-pointer">
+          💾 Кесілген аудионы жүктеп алу (.WAV)
+        </a>
+      </div>
+    </div>
+
+    <div id="metrics" class="grid gap-4 sm:grid-cols-3"></div>
+
+    <div id="radar" class="glass p-5 sm:p-7"></div>
+
+    <div class="glass p-5 sm:p-7">
+      <h2 class="text-lg font-bold">Сазгерге арналған Ақылды модуль</h2>
+      <p id="advice" class="mt-3 text-sm leading-relaxed text-slate-300 sm:text-base"></p>
+    </div>
+  </section>
+
+  <footer class="mt-12 text-center text-xs text-slate-600">AudioRatio · 0.618 принципі бойынша құрылымдық талдау</footer>
+</main>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+
+  function mmss(sec) {
+    if (!isFinite(sec) || sec < 0) sec = 0;
+    var s = Math.round(sec);
+    var m = Math.floor(s / 60);
+    var r = s % 60;
+    return String(m).padStart(2, '0') + ':' + String(r).padStart(2, '0');
+  }
+  function pct(n) { return n.toFixed(2).replace(/\.00$/, '') + '%'; }
+  function secTxt(n) { return Math.round(n) + ' с (' + mmss(n) + ')'; }
+
+  var totalEl = $('total'), climaxEl = $('climax'), genreEl = $('genre');
+  var loadedAudioBuffer = null; // Жүктелген аудио дерегі
+
+  function bindPreview(input, out) {
+    var upd = function () {
+      var v = parseFloat(input.value);
+      out.textContent = mmss(isFinite(v) && v > 0 ? v : 0);
+    };
+    input.addEventListener('input', upd);
+    upd();
+  }
+  bindPreview(totalEl, $('total-prev'));
+  bindPreview(climaxEl, $('climax-prev'));
+
+  function setErr(id, msg) { $(id).textContent = msg || ''; }
+
+  /* --- АУДИО ФАЙЛДЫ ЖҮКТЕУ ЖӘНЕ ТАЛДАУ ЛОГИКАСЫ --- */
+  var dropzone = $('dropzone');
+  var audioInput = $('audio-input');
+
+  dropzone.addEventListener('click', function () { audioInput.click(); });
+  dropzone.addEventListener('dragover', function (e) { e.preventDefault(); dropzone.classList.add('border-[#1ed760]'); });
+  dropzone.addEventListener('dragleave', function () { dropzone.classList.remove('border-[#1ed760]'); });
+  dropzone.addEventListener('drop', function (e) {
+    e.preventDefault();
+    dropzone.classList.remove('border-[#1ed760]');
+    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+  });
+  audioInput.addEventListener('change', function () {
+    if (audioInput.files.length) handleFile(audioInput.files[0]);
+  });
+
+  function handleFile(file) {
+    if (!file.type.startsWith('audio/')) {
+      alert('Өтініш, тек аудио файл таңдаңыз!');
+      return;
+    }
+
+    $('file-name').textContent = file.name;
+    $('file-info').classList.remove('hidden');
+    $('file-info').classList.add('flex');
+
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      var actx = new (window.AudioContext || window.webkitAudioContext)();
+      actx.decodeAudioData(e.target.result, function (buffer) {
+        loadedAudioBuffer = buffer;
+        var duration = buffer.duration;
+
+        // Автоматты түрде ұзақтықты жазу
+        totalEl.value = Math.round(duration);
+        $('total-prev').textContent = mmss(duration);
+
+        // Егер шарықтау шегі жазылмаса, аудионың ең қатты (пик) жерін автоматты табу
+        if (!climaxEl.value) {
+          var peakSec = findPeakTime(buffer);
+          climaxEl.value = Math.round(peakSec);
+          $('climax-prev').textContent = mmss(peakSec);
+        }
+
+        $('file-duration').textContent = 'Ұзақтығы: ' + mmss(duration);
+      });
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  // Аудионың ең жоғары дауыс шығатын нүктесін табу
+  function findPeakTime(buffer) {
+    var pcm = buffer.getChannelData(0);
+    var step = Math.floor(buffer.sampleRate * 0.5); // 0.5 сек кадам
+    var maxRms = 0, peakSec = 0;
+    for (var i = 0; i < pcm.length; i += step) {
+      var sum = 0;
+      for (var j = 0; j < step && (i + j) < pcm.length; j++) {
+        sum += pcm[i + j] * pcm[i + j];
+      }
+      var rms = Math.sqrt(sum / step);
+      if (rms > maxRms) {
+        maxRms = rms;
+        peakSec = i / buffer.sampleRate;
+      }
+    }
+    return peakSec;
+  }
+
+  /* --- АУДИОНЫ КЕСУ ЖӘНЕ WAV ЕТІП ЭКСПОРТТАУ --- */
+  function sliceAndExport(startSec, endSec, title) {
+    if (!loadedAudioBuffer) return;
+    
+    startSec = Math.max(0, startSec);
+    endSec = Math.min(loadedAudioBuffer.duration, endSec);
+
+    var rate = loadedAudioBuffer.sampleRate;
+    var startFrame = Math.floor(startSec * rate);
+    var endFrame = Math.floor(endSec * rate);
+    var frameCount = endFrame - startFrame;
+
+    var actx = new (window.AudioContext || window.webkitAudioContext)();
+    var newBuffer = actx.createBuffer(loadedAudioBuffer.numberOfChannels, frameCount, rate);
+
+    for (var ch = 0; ch < loadedAudioBuffer.numberOfChannels; ch++) {
+      var data = loadedAudioBuffer.getChannelData(ch);
+      var newData = newBuffer.getChannelData(ch);
+      for (var i = 0; i < frameCount; i++) {
+        newData[i] = data[startFrame + i];
+      }
+    }
+
+    var wavBlob = bufferToWave(newBuffer, frameCount);
+    var url = URL.createObjectURL(wavBlob);
+
+    $('export-player').src = url;
+    $('export-download').href = url;
+    $('export-[#download]').download = title.toLowerCase().replace(/\s+/g, '_') + '.wav';
+    $('export-status').textContent = 'Кесілген бөлім: ' + title + ' (' + mmss(startSec) + ' → ' + mmss(endSec) + ')';
+    $('audio-export-box').classList.remove('hidden');
+  }
+
+  // AudioBuffer-ді WAV форматына айналдыру
+  function bufferToWave(abuffer, len) {
+    var numOfChan = abuffer.numberOfChannels,
+        length = len * numOfChan * 2 + 44,
+        buffer = new ArrayBuffer(length),
+        view = new DataView(buffer),
+        channels = [], i, sample, offset = 0, pos = 0;
+
+    function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
+    function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
+
+    setUint32(0x46464952);                         // "RIFF"
+    setUint32(length - 8);                         // file length - 8
+    setUint32(0x45564157);                         // "WAVE"
+    setUint32(0x20746d66);                         // "fmt "
+    setUint32(16);                                 // 16-bit
+    setUint16(1);                                  // PCM
+    setUint16(numOfChan);
+    setUint32(abuffer.sampleRate);
+    setUint32(abuffer.sampleRate * 2 * numOfChan);
+    setUint16(numOfChan * 2);
+    setUint16(16);
+    setUint32(0x61746164);                         // "data"
+    setUint32(length - pos - 4);
+
+    for (i = 0; i < abuffer.numberOfChannels; i++) channels.push(abuffer.getChannelData(i));
+
+    while (pos < length) {
+      for (i = 0; i < numOfChan; i++) {
+        sample = Math.max(-1, Math.min(1, channels[i][offset]));
+        sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
+        view.setInt16(pos, sample, true);
+        pos += 2;
+      }
+      offset++;
+    }
+    return new Blob([buffer], { type: "audio/wav" });
+  }
+
+  var GENRES = {
+    kuy: { name: 'Қазақ күйлері', t: 1.5 },
+    pop: { name: 'K-Pop / Pop', t: 2.0 },
+    rap: { name: 'Рэп / Хип-хоп / Трап', t: 4.5 },
+    classic: { name:
