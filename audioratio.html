@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="kk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AudioRatio — алтын қатынас арқылы ән талдау</title>
+<meta name="description" content="Аудио файлды жүктеп, шарықтау шегін автоматты анықтаңыз, алтын қатынас (0.618) бойынша талдап, WAV үзінді жүктеп алыңыз." />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="AudioRatio — ән құрылымын талдау" />
+<meta property="og:description" content="Шарықтау шегін алтын қатынасқа шақтап, ән үзінділерін қиып алыңыз." />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" />
+<style>
+:root{
+  --bg:#08090d; --text:#e8ebf1; --muted:#98a0b3;
+  --spot:#1ed760; --emer:#10b981; --warn:#e3b341; --bad:#e5484d;
+  --border:rgba(255,255,255,.10); --radius:.9rem;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:"Plus Jakarta Sans",system-ui,sans-serif;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+.grid-bg{position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(232,235,241,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(232,235,241,.05) 1px,transparent 1px);
+  background-size:44px 44px;mask-image:radial-gradient(circle at 50% 20%,#000,transparent 70%);-webkit-mask-image:radial-gradient(circle at 50% 20%,#000,transparent 70%)}
+.blob{position:fixed;border-radius:9999px;filter:blur(90px);opacity:.32;z-index:0;pointer-events:none;animation:float 14s ease-in-out infinite}
+.blob-a{width:420px;height:420px;background:var(--spot);top:-120px;left:-90px}
+.blob-b{width:380px;height:380px;background:var(--emer);bottom:-140px;right:-100px;animation-delay:-6s}
+@keyframes float{0%,100%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(0,30px,0) scale(1.08)}}
+main{position:relative;z-index:10;width:100%;max-width:64rem;margin:0 auto;padding:2.5rem 1rem}
+@media(min-width:640px){main{padding:3.5rem 1.5rem}}
+.glass{background:linear-gradient(160deg,rgba(232,235,241,.07),rgba(232,235,241,.025));border:1px solid rgba(232,235,241,.09);
+  backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);border-radius:22px;
+  transition:border-color .3s ease,box-shadow .3s ease}
+.glass:hover{border-color:rgba(30,215,96,.35);box-shadow:0 18px 40px -22px rgba(30,215,96,.45)}
+.pad{padding:1.25rem}
+@media(min-width:640px){.pad{padding:1.75rem}}
+.mt6{margin-top:1.5rem}.mt10{margin-top:2.5rem}
+.btn{display:inline-flex;align-items:center;justify-content:center;border:0;cursor:pointer;font-family:inherit;
+  background:linear-gradient(120deg,var(--spot),var(--emer));color:#0b2415;border-radius:.75rem;
+  padding:.85rem 1.5rem;font-size:1rem;font-weight:800;text-decoration:none;
+  transition:transform .2s ease,box-shadow .25s ease,filter .2s ease}
+.btn:hover{transform:translateY(-2px);box-shadow:0 16px 34px -14px rgba(30,215,96,.7);filter:brightness(1.05)}
+.btn:active{transform:none}
+.btn:disabled{opacity:.5;transform:none;filter:none;cursor:not-allowed;box-shadow:none}
+.btn-sm{padding:.75rem 1rem;font-size:.875rem}
+.btn-block{width:100%}
+.glow-high{box-shadow:0 0 0 1px rgba(30,215,96,.5),0 0 42px -8px rgba(30,215,96,.55)}
+.glow-mid{box-shadow:0 0 0 1px rgba(227,179,65,.5),0 0 42px -8px rgba(227,179,65,.5)}
+.glow-low{box-shadow:0 0 0 1px rgba(229,72,77,.5),0 0 42px -8px rgba(229,72,77,.5)}
+h1{font-size:2.25rem;font-weight:800;letter-spacing:-.02em}
+@media(min-width:640px){h1{font-size:3rem}}
+h2{font-size:1.125rem;font-weight:700}
+.center{text-align:center}
+.logo{width:4rem;height:4rem;margin:0 auto 1.25rem;border-radius:9999px;background:var(--spot);display:flex;align-items:center;justify-content:center;box-shadow:0 14px 36px -10px rgba(30,215,96,.55)}
+.grad{background:linear-gradient(90deg,var(--spot),var(--emer));-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{max-width:36rem;margin:.75rem auto 0;font-size:.9rem;line-height:1.6;color:var(--muted)}
+.muted{color:var(--muted)}
+.small{font-size:.75rem}
+.mid{font-size:.875rem}
+.drop{margin-top:1.25rem;cursor:pointer;border:2px dashed var(--border);border-radius:1rem;padding:2rem;text-align:center;transition:border-color .2s,background-color .2s}
+.drop:hover{border-color:rgba(30,215,96,.6)}
+.drop.drag{border-color:var(--spot);background:rgba(30,215,96,.1)}
+.drop .t{font-size:1rem;font-weight:700}
+.spot{color:var(--spot)}.emer{color:var(--emer)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+#wave{display:none;margin-top:1.25rem;height:5rem;align-items:center;gap:1px;overflow:hidden;border-radius:.75rem;border:1px solid var(--border);background:rgba(232,235,241,.04);padding:0 .5rem}
+#wave span{flex:1;border-radius:9999px;background:linear-gradient(to top,var(--emer),var(--spot))}
+.grid{display:grid;gap:1rem}
+@media(min-width:640px){.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:1024px){.g4{grid-template-columns:repeat(4,1fr)}}
+label{display:block;font-size:.875rem;font-weight:600}
+input[type=number],select{margin-top:.5rem;width:100%;border:1px solid var(--border);background:rgba(232,235,241,.05);
+  color:var(--text);border-radius:.75rem;padding:.75rem 1rem;font-size:1rem;font-weight:500;font-family:inherit}
+select{appearance:none}
+option{background:#131722;color:var(--text)}
+.err{min-height:1.1rem;font-size:.75rem;color:var(--bad)}
+.bar{display:flex;height:1.25rem;width:100%;overflow:hidden;border-radius:9999px;border:1px solid var(--border);background:rgba(232,235,241,.05)}
+.seg{height:100%;transition:width .7s cubic-bezier(.22,1,.36,1),filter .25s ease}
+.seg:hover{filter:brightness(1.25)}
+.s-intro{background:rgba(16,185,129,.25)}
+.s-chorus{background:linear-gradient(90deg,var(--spot),var(--emer))}
+.s-outro{background:rgba(16,185,129,.1)}
+.tl{position:relative;margin-top:2rem}
+.mk{position:absolute;transform:translateX(-50%);border-radius:2px;transition:left .7s cubic-bezier(.22,1,.36,1)}
+.mk-y{top:-.625rem;height:2.5rem;width:2px;background:var(--bad)}
+.mk-x{top:-.25rem;height:1.75rem;width:2px;background:rgba(232,235,241,.7)}
+.tag{position:absolute;left:50%;transform:translateX(-50%);border-radius:.375rem;padding:.1rem .5rem;font-size:10px;font-weight:700;background:rgba(232,235,241,.1);white-space:nowrap}
+.tag-top{top:-1.5rem}.tag-bot{bottom:-1.5rem}
+.tag-y{background:rgba(229,72,77,.15);color:var(--bad)}
+.cap{font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--spot)}
+.big{margin-top:.5rem;font-size:1.875rem;font-weight:800}
+.mid-b{margin-top:.5rem;font-size:.875rem;font-weight:700}
+audio{margin-top:1.25rem;width:100%}
+footer{margin-top:3rem;text-align:center;font-size:.75rem;color:var(--muted)}
+.hide{display:none!important}
+.track{margin-top:1rem;height:.5rem;width:100%;overflow:hidden;border-radius:9999px;background:rgba(232,235,241,.1)}
+.box{margin-top:1.5rem;border:1px solid var(--border);background:rgba(232,235,241,.05);border-radius:1rem;padding:1rem}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div><div class="blob blob-a"></div><div class="blob blob-b"></div>
+
+<main>
+  <header class="center">
+    <div class="logo">
+      <svg viewBox="0 0 100 100" width="36" height="36" aria-hidden="true" fill="#08090d">
+        <rect x="26" y="38" width="10" height="24" rx="5"/>
+        <rect x="44" y="26" width="10" height="48" rx="5"/>
+        <rect x="62" y="34" width="10" height="32" rx="5"/>
+      </svg>
+    </div>
+    <h1>Audio<span class="grad">Ratio</span></h1>
+    <p class="lead">Аудио файлды жүктеңіз — шарықтау шегі автоматты анықталып, алтын қатынас бойынша талдау және дайын үзінділер жасалады.</p>
+  </header>
+
+  <!-- 1. UPLOAD -->
+  <section class="glass pad mt10">
+    <h2>1. Аудио файлды жүктеу</h2>
+    <div id="drop" class="drop" role="button" tabindex="0">
+      <p class="t" id="drop-title">Файлды осы жерге тастаңыз немесе басыңыз</p>
+      <p class="small muted" style="margin-top:.5rem">MP3 · WAV · AAC · FLAC · M4A · OGG</p>
+      <p class="mid spot hide" id="file-name" style="margin-top:.75rem;font-weight:600"></p>
+      <input id="file" type="file" class="hide" accept="audio/*,.mp3,.wav,.aac,.flac,.m4a,.ogg" />
+    </div>
+    <div id="wave"></div>
+    <p id="notice" role="alert" class="mid bad hide" style="margin-top:1rem;font-weight:600"></p>
+  </section>
+
+  <!-- AUTO RESULT -->
+  <section id="auto" class="glass glow-high pad mt6 hide">
+    <h2>Автоматты нәтиже — шарықтау шегі 61.8%-да</h2>
+    <p id="auto-desc" class="mid muted" style="margin-top:.25rem"></p>
+    <div class="tl">
+      <div class="bar">
+        <div class="seg s-intro" style="width:61.8%"></div>
+        <div class="seg s-chorus" style="width:38.2%"></div>
+      </div>
+      <div class="mk mk-x" style="left:61.8%;height:2.5rem;top:-.625rem;background:var(--text)">
+        <span class="tag tag-top">61.8%</span>
+      </div>
+    </div>
+    <div class="grid g3" style="margin-top:2rem">
+      <div class="glass" style="padding:1rem"><p class="cap">Кесілген аралық</p><p class="mid-b" id="auto-range"></p></div>
+      <div class="glass" style="padding:1rem"><p class="cap">Жаңа ұзақтық</p><p class="mid-b" id="auto-dur"></p></div>
+      <div class="glass" style="padding:1rem"><p class="cap">Кульминация орны</p><p class="mid-b" id="auto-climax"></p></div>
+    </div>
+    <audio id="auto-audio" controls></audio>
+    <a id="auto-dl" class="btn" style="margin-top:1rem" download="audioratio-golden-618.wav">WAV жүктеп алу</a>
+  </section>
+
+  <!-- 2. FORM -->
+  <section class="glass pad mt6">
+    <h2>2. Деректерді тексеру</h2>
+    <form id="form" novalidate class="grid g2" style="margin-top:1.25rem">
+      <div>
+        <label for="total">Әннің толық ұзақтығы (T, секунд)</label>
+        <input id="total" type="number" min="1" step="1" placeholder="Мысалы: 210" />
+        <p class="small emer" id="total-prev" style="margin-top:.375rem;font-weight:600">00:00</p>
+        <p class="err" id="total-err"></p>
+      </div>
+      <div>
+        <label for="climax">Шарықтау шегі (Y, секунд)</label>
+        <input id="climax" type="number" min="1" step="1" placeholder="Мысалы: 128" />
+        <p class="small emer" id="climax-prev" style="margin-top:.375rem;font-weight:600">00:00</p>
+        <p class="err" id="climax-err"></p>
+      </div>
+      <div style="grid-column:1/-1">
+        <label for="genre">Жанр</label>
+        <select id="genre"></select>
+        <p class="small muted" style="margin-top:.375rem">Жанр таңдауы ауытқудың рұқсат етілген шегін анықтайды.</p>
+      </div>
+      <div style="grid-column:1/-1">
+        <button type="submit" class="btn btn-block">Талдау жасау</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- RESULTS -->
+  <div id="results" class="hide" style="margin-top:2.5rem">
+    <section class="glass pad">
+      <h2>Уақыт шкаласы</h2>
+      <p class="small muted" style="margin-top:.25rem">Intro/Verse 38.2% · Chorus 23.6% · Outro 38.2%</p>
+      <div class="tl">
+        <div class="bar">
+          <div class="seg s-intro" style="width:38.2%" title="Intro / Verse"></div>
+          <div class="seg s-chorus" style="width:23.6%" title="Chorus"></div>
+          <div class="seg s-outro" style="width:38.2%" title="Outro"></div>
+        </div>
+        <div class="mk mk-y" id="mk-y" style="left:0%"><span class="tag tag-top tag-y">Y</span></div>
+        <div class="mk mk-x" style="left:61.8%"><span class="tag tag-bot">X</span></div>
+      </div>
+      <div class="grid g2 g4" id="parts" style="margin-top:3rem"></div>
+    </section>
+
+    <div class="grid g3 mt6" id="metrics"></div>
+
+    <section class="glass pad mt6" id="radar">
+      <h2>Hit Potential Radar</h2>
+      <p id="radar-label" style="margin-top:.75rem;font-size:1.5rem;font-weight:800"></p>
+      <div class="track"><div class="seg s-chorus" id="radar-bar" style="width:0%"></div></div>
+      <p class="mid muted" id="radar-text" style="margin-top:1rem;line-height:1.6"></p>
+    </section>
+
+    <section class="glass pad mt6">
+      <h2>Сазгерге арналған Ақылды модуль</h2>
+      <p class="mid muted" id="advice" style="margin-top:.75rem;line-height:1.6"></p>
+    </section>
+
+    <section class="glass pad mt6">
+      <h2>3. Аудио қию және WAV жүктеу</h2>
+      <p class="small muted" id="cut-hint" style="margin-top:.25rem">Қию үшін алдымен аудио файлды жүктеу қажет.</p>
+      <div class="grid g3" style="margin-top:1.25rem">
+        <button type="button" class="btn btn-sm" id="cut1" disabled>Шарықтау аймағы (X ± 15 с)</button>
+        <button type="button" class="btn btn-sm" id="cut2" disabled>Басынан алтын нүктеге (0 → X)</button>
+        <button type="button" class="btn btn-sm" id="cut3" disabled>Қайырма бөлімі (38.2% → 61.8%)</button>
+      </div>
+      <div class="box hide" id="cut-box">
+        <p class="mid" id="cut-info" style="font-weight:700"></p>
+        <audio id="cut-audio" controls style="margin-top:.75rem"></audio>
+        <a id="cut-dl" class="btn btn-sm" style="margin-top:1rem" download="audioratio-cut.wav">WAV жүктеп алу</a>
+      </div>
+    </section>
+  </div>
+
+  <footer>AudioRatio · 0.618 принципі бойынша құрылымдық талдау</footer>
+</main>
+
+<script>
+/* ================= AUDIO ENGINE ================= */
+const PHI = 0.618;
+const GENRES = {
+  kuy:     { name:"Қазақ күйлері", t:1.5, label:"Қазақ күйлері (Δ ≤ 1.5%)" },
+  pop:     { name:"K-Pop / Pop",   t:2.0, label:"K-Pop / Pop (Δ ≤ 2.0%)" },
+  rap:     { name:"Рэп / Хип-хоп / Трап", t:4.5, label:"Рэп / Хип-хоп / Трап (Δ ≤ 4.5%)" },
+  classic: { name:"Классика / Басқа", t:3.0, label:"Классика / Басқа (Δ ≤ 3.0%)" },
+};
+const ACCEPTED_EXT = ["mp3","wav","aac","flac","m4a","ogg"];
+
+const isAcceptedFile = f => ACCEPTED_EXT.includes((f.name.split(".").pop()||"").toLowerCase()) || f.type.startsWith("audio/");
+const mmss = sec => { const v = (!isFinite(sec)||sec<0)?0:sec, s=Math.round(v);
+  return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0"); };
+const pct = n => n.toFixed(2).replace(/\.00$/,"")+"%";
+const secTxt = n => Math.round(n)+" с ("+mmss(n)+")";
+
+/* 0.3 с терезедегі RMS энергиясы бойынша кульминация */
+function detectClimax(buffer, windowSec = 0.3){
+  const { sampleRate, length, numberOfChannels } = buffer;
+  const ch = []; for(let c=0;c<numberOfChannels;c++) ch.push(buffer.getChannelData(c));
+  const win = Math.max(1, Math.floor(sampleRate*windowSec));
+  let bestRms = -1, bestStart = 0;
+  for(let start=0;start<length;start+=win){
+    const end = Math.min(start+win, length);
+    let sum=0,count=0;
+    for(let c=0;c<ch.length;c++){ const d=ch[c];
+      for(let i=start;i<end;i+=2){ const v=d[i]; sum+=v*v; count++; } }
+    const rms = count?Math.sqrt(sum/count):0;
+    if(rms>bestRms){ bestRms=rms; bestStart=start; }
+  }
+  return (bestStart+win/2)/sampleRate;
+}
+
+/* Толқын пішіні */
+function waveformPeaks(buffer, buckets = 400){
+  const data = buffer.getChannelData(0);
+  const size = Math.floor(data.length/buckets)||1, peaks=[];
+  for(let b=0;b<buckets;b++){
+    let max=0; const s=b*size, e=Math.min(s+size,data.length);
+    for(let i=s;i<e;i+=4){ const v=Math.abs(data[i]||0); if(v>max) max=v; }
+    peaks.push(max);
+  }
+  const top = Math.max(...peaks.filter(isFinite), 0.0001);
+  return peaks.map(p=>p/top);
+}
+
+/* 16-bit PCM WAV энкодері */
+function encodeWav(buffer, startSec, endSec){
+  const sr = buffer.sampleRate, channels = buffer.numberOfChannels;
+  const startFrame = Math.max(0, Math.floor(startSec*sr));
+  const endFrame = Math.min(buffer.length, Math.ceil(endSec*sr));
+  const frames = Math.max(0, endFrame-startFrame);
+  if(frames===0) throw new Error("empty-range");
+  const dataBytes = frames*channels*2;
+  const out = new ArrayBuffer(44+dataBytes), view = new DataView(out);
+  const ws=(o,s)=>{for(let i=0;i<s.length;i++)view.setUint8(o+i,s.charCodeAt(i));};
+  ws(0,"RIFF"); view.setUint32(4,36+dataBytes,true); ws(8,"WAVE"); ws(12,"fmt ");
+  view.setUint32(16,16,true); view.setUint16(20,1,true); view.setUint16(22,channels,true);
+  view.setUint32(24,sr,true); view.setUint32(28,sr*channels*2,true);
+  view.setUint16(32,channels*2,true); view.setUint16(34,16,true);
+  ws(36,"data"); view.setUint32(40,dataBytes,true);
+  const cd=[]; for(let c=0;c<channels;c++) cd.push(buffer.getChannelData(c));
+  let off=44;
+  for(let i=startFrame;i<endFrame;i++)
+    for(let c=0;c<channels;c++){
+      let s=cd[c][i]; s=s<-1?-1:s>1?1:s;
+      view.setInt16(off, s<0? s*0x8000 : s*0x7fff, true); off+=2;
+    }
+  return new Blob([out],{type:"audio/wav"});
+}
+
+/* Кульминацияны 61.8% нүктесіне қоятын аралық */
+function goldenTrimRange(duration, climax){
+  const y = Math.max(0, Math.min(climax, duration));
+  const ratio = (1-PHI)/PHI;
+  let before = y, after = before*ratio;
+  if(after > duration-y){ after = duration-y; before = after/ratio; }
+  const start = Math.max(0, y-before), end = Math.min(duration, y+after);
+  return { start, end, duration: end-start, climaxAt: y-start };
+}
+
+/* ================= STATE + UI ================= */
+const $ = id => document.getElementById(id);
+let audioBuffer = null, analysis = null, cutUrl = null, autoUrl = null;
+
+const genreSel = $("genre");
+Object.keys(GENRES).forEach(k=>{
+  const o=document.createElement("option"); o.value=k; o.textContent=GENRES[k].label; genreSel.appendChild(o);
+});
+genreSel.value = "pop";
+
+function notice(msg){
+  const n=$("notice"); n.textContent=msg||""; n.classList.toggle("hide", !msg);
+}
+function drawWave(peaks){
+  const w=$("wave"); w.innerHTML="";
+  if(!peaks.length){ w.style.display="none"; return; }
+  w.style.display="flex";
+  peaks.forEach(p=>{ const s=document.createElement("span"); s.style.height=Math.max(3,p*100)+"%"; w.appendChild(s); });
+}
+$("total").addEventListener("input",e=>$("total-prev").textContent=mmss(parseFloat(e.target.value)||0));
+$("climax").addEventListener("input",e=>$("climax-prev").textContent=mmss(parseFloat(e.target.value)||0));
+
+/* --- Drag & drop --- */
+const drop=$("drop"), fileInput=$("file");
+drop.addEventListener("click",()=>fileInput.click());
+drop.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); fileInput.click(); }});
+drop.addEventListener("dragover",e=>{ e.preventDefault(); drop.classList.add("drag"); });
+drop.addEventListener("dragleave",()=>drop.classList.remove("drag"));
+drop.addEventListener("drop",e=>{ e.preventDefault(); drop.classList.remove("drag");
+  const f=e.dataTransfer.files && e.dataTransfer.files[0]; if(f) handleFile(f); });
+fileInput.addEventListener("change",e=>{ const f=e.target.files[0]; if(f) handleFile(f); e.target.value=""; });
+
+async function handleFile(file){
+  notice("");
+  if(!isAcceptedFile(file)){
+    notice("Файл пішімі қолданылмайды. Рұқсат етілген: "+ACCEPTED_EXT.join(", ").toUpperCase()+".");
+    return;
+  }
+  $("drop-title").textContent="Талдау жүруде…";
+  $("file-name").classList.add("hide");
+  try{
+    const ab = await file.arrayBuffer();
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    const ctx = new Ctx();
+    const buffer = await ctx.decodeAudioData(ab);
+    if(ctx.close) await ctx.close();
+
+    audioBuffer = buffer;
+    drawWave(waveformPeaks(buffer));
+    const dur = buffer.duration;
+    const y = Math.min(detectClimax(buffer), dur);
+    $("total").value = Math.round(dur); $("total-prev").textContent = mmss(dur);
+    $("climax").value = Math.round(y);  $("climax-prev").textContent = mmss(y);
+    $("total-err").textContent=""; $("climax-err").textContent="";
+    $("cut-box").classList.add("hide");
+    $("file-name").textContent=file.name; $("file-name").classList.remove("hide");
+
+    /* автоматты талдау */
+    const X = dur*PHI, delta = (Math.abs(X-y)/dur)*100;
+    setAnalysis({ T:dur, Y:y, X, intro:dur*0.382, chorusEnd:dur*0.618,
+      delta, match:Math.max(0,100-delta), diff:Math.round(Math.abs(X-y)), genre:genreSel.value });
+
+    /* автоматты қиу — кульминация 61.8%-да */
+    const r = goldenTrimRange(dur, y);
+    if(r.duration > 0.2){
+      const blob = encodeWav(buffer, r.start, r.end);
+      if(autoUrl) URL.revokeObjectURL(autoUrl);
+      autoUrl = URL.createObjectURL(blob);
+      const at = (r.climaxAt/r.duration*100).toFixed(1);
+      $("auto-desc").textContent = "RMS энергиясы бойынша табылған кульминация: "+secTxt(y)+
+        ". Артық бөліктер кесілді — жаңа ұзақтық "+mmss(r.duration)+", кульминация "+mmss(r.climaxAt)+" ("+at+"%).";
+      $("auto-range").textContent = mmss(r.start)+" → "+mmss(r.end);
+      $("auto-dur").textContent = mmss(r.duration);
+      $("auto-climax").textContent = mmss(r.climaxAt);
+      $("auto-audio").src = autoUrl;
+      $("auto-dl").href = autoUrl;
+      $("auto").classList.remove("hide");
+      $("auto").scrollIntoView({behavior:"smooth",block:"start"});
+    } else {
+      $("auto").classList.add("hide");
+    }
+  }catch(err){
+    audioBuffer=null; drawWave([]);
+    $("file-name").classList.add("hide");
+    notice("Аудио файлды оқу мүмкін болмады. Басқа файлды таңдап көріңіз.");
+  }finally{
+    $("drop-title").textContent="Файлды осы жерге тастаңыз немесе басыңыз";
+    updateCutButtons();
+  }
+}
+
+/* --- Қолмен талдау --- */
+$("form").addEventListener("submit",e=>{
+  e.preventDefault();
+  $("total-err").textContent=""; $("climax-err").textContent="";
+  const T=parseFloat($("total").value), Y=parseFloat($("climax").value);
+  let ok=true;
+  if($("total").value.trim()===""||!isFinite(T)){ $("total-err").textContent="Ұзақтықты енгізіңіз."; ok=false; }
+  else if(T<=0){ $("total-err").textContent="Ұзақтық 0-ден үлкен болуы керек."; ok=false; }
+  if($("climax").value.trim()===""||!isFinite(Y)){ $("climax-err").textContent="Шарықтау шегін енгізіңіз."; ok=false; }
+  else if(Y<=0){ $("climax-err").textContent="Шарықтау шегі 0-ден үлкен болуы керек."; ok=false; }
+  else if(isFinite(T)&&T>0&&Y>T){ $("climax-err").textContent="Y мәні T мәнінен аспауы керек."; ok=false; }
+  if(!ok) return;
+  const X=T*PHI, delta=(Math.abs(X-Y)/T)*100;
+  $("cut-box").classList.add("hide");
+  setAnalysis({ T, Y, X, intro:T*0.382, chorusEnd:T*0.618,
+    delta, match:Math.max(0,100-delta), diff:Math.round(Math.abs(X-Y)), genre:genreSel.value });
+  $("results").scrollIntoView({behavior:"smooth",block:"start"});
+});
+
+/* --- Нәтижелерді көрсету --- */
+function setAnalysis(a){
+  analysis = a;
+  const g = GENRES[a.genre];
+  $("results").classList.remove("hide");
+  $("mk-y").style.left = Math.min(100, Math.max(0,(a.Y/a.T)*100))+"%";
+
+  const parts=[
+    {n:"Intro / Verse", a:0, b:a.intro},
+    {n:"Chorus", a:a.intro, b:a.chorusEnd},
+    {n:"Алтын қатынас шыңы (X)", a:a.X, b:a.X},
+    {n:"Outro", a:a.chorusEnd, b:a.T},
+  ];
+  $("parts").innerHTML = parts.map(p=>{
+    const body = p.a===p.b
+      ? '<p class="big">'+mmss(p.a)+'</p><p class="small muted" style="margin-top:.25rem">'+Math.round(p.a)+' секунд</p>'
+      : '<p class="mid-b">'+mmss(p.a)+' → '+mmss(p.b)+'</p><p class="small muted" style="margin-top:.25rem">'+
+        Math.round(p.a)+' с → '+Math.round(p.b)+' с · ұзақтығы '+Math.round(p.b-p.a)+' с</p>';
+    return '<div class="glass" style="padding:1rem"><p class="cap">'+p.n+'</p>'+body+'</div>';
+  }).join("");
+
+  const metrics=[
+    {t:"Алтын нүкте X", v:mmss(a.X), s:Math.round(a.X)+" секунд"},
+    {t:"Ауытқу Δ", v:pct(a.delta), s:"Айырма: "+a.diff+" секунд"},
+    {t:"Сәйкестік индексі", v:pct(a.match), s:"Жанр шегі: Δ ≤ "+g.t.toFixed(1)+"%"},
+  ];
+  $("metrics").innerHTML = metrics.map(m=>
+    '<div class="glass" style="padding:1rem"><p class="cap">'+m.t+'</p><p class="big">'+m.v+
+    '</p><p class="small muted" style="margin-top:.25rem">'+m.s+'</p></div>').join("");
+
+  const radar = $("radar");
+  radar.classList.remove("glow-high","glow-mid","glow-low");
+  let label, cls, tone;
+  if(a.match>=95){ label="High Potential — Жоғары әлеует"; cls="glow-high"; tone="var(--spot)"; }
+  else if(a.match>=85){ label="Good Potential — Жақсы әлеует"; cls="glow-mid"; tone="var(--warn)"; }
+  else { label="Low Potential — Төмен әлеует"; cls="glow-low"; tone="var(--bad)"; }
+  radar.classList.add(cls);
+  $("radar-label").textContent=label; $("radar-label").style.color=tone;
+  $("radar-bar").style.width=a.match.toFixed(2)+"%";
+  $("radar-text").textContent = a.delta<=g.t
+    ? "«"+g.name+"» жанры бойынша эталон Δ ≤ "+g.t.toFixed(1)+"%. Сіздің Δ = "+pct(a.delta)+" — талапқа сай, құрылым жанр стандартына толық жауап береді."
+    : "«"+g.name+"» жанры бойынша эталон Δ ≤ "+g.t.toFixed(1)+"%. Сіздің Δ = "+pct(a.delta)+" — шектен "+(a.delta-g.t).toFixed(2)+"% асып тұр, құрылымды түзету қажет.";
+
+  $("advice").textContent = a.match>=95
+    ? "Шарықтау шегі алтын қатынас нүктесі X = "+secTxt(a.X)+" мәніне барынша жақын. Құрылымды өзгертпей, осы қалыпта сақтаңыз."
+    : a.Y<a.X
+      ? "Шарықтау шегі тым ерте келеді (Y = "+secTxt(a.Y)+", X = "+secTxt(a.X)+"). Intro бөлімін немесе 2-ші шумақты дәл "+a.diff+" секундқа ұзартуды ұсынамыз."
+      : "Шарықтау шегі тым кеш келеді (Y = "+secTxt(a.Y)+", X = "+secTxt(a.X)+"). Intro бөлімін немесе 2-ші шумақты дәл "+a.diff+" секундқа қысқартуды ұсынамыз.";
+
+  updateCutButtons();
+}
+
+/* --- Қолмен қию --- */
+function updateCutButtons(){
+  const on = !!audioBuffer;
+  ["cut1","cut2","cut3"].forEach(id=>$(id).disabled=!on);
+  $("cut-hint").textContent = on ? "Дайын үзінділердің бірін таңдаңыз." : "Қию үшін алдымен аудио файлды жүктеу қажет.";
+}
+function makeCut(name,start,end){
+  if(!audioBuffer){ notice("Алдымен аудио файлды жүктеңіз."); return; }
+  const s=Math.max(0,Math.min(start,audioBuffer.duration));
+  const e=Math.max(0,Math.min(end,audioBuffer.duration));
+  if(e-s<0.1){ notice("Таңдалған үзінді тым қысқа немесе шектен тыс."); return; }
+  try{
+    const blob=encodeWav(audioBuffer,s,e);
+    if(cutUrl) URL.revokeObjectURL(cutUrl);
+    cutUrl=URL.createObjectURL(blob);
+    notice("");
+    $("cut-info").textContent="Үзінді: "+mmss(s)+" → "+mmss(e)+" · "+Math.round(e-s)+" с";
+    $("cut-audio").src=cutUrl;
+    $("cut-dl").href=cutUrl;
+    $("cut-dl").setAttribute("download","audioratio-"+name+".wav");
+    $("cut-box").classList.remove("hide");
+  }catch(err){ notice("Үзіндіні дайындау кезінде қате шықты."); }
+}
+$("cut1").addEventListener("click",()=>analysis&&makeCut("climax-zone",analysis.X-15,analysis.X+15));
+$("cut2").addEventListener("click",()=>analysis&&makeCut("intro-to-golden",0,analysis.X));
+$("cut3").addEventListener("click",()=>analysis&&makeCut("chorus",analysis.intro,analysis.chorusEnd));
+
+window.addEventListener("beforeunload",()=>{
+  if(cutUrl) URL.revokeObjectURL(cutUrl);
+  if(autoUrl) URL.revokeObjectURL(autoUrl);
+});
+</script>
+</body>
+</html>
